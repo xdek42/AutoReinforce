@@ -1,0 +1,1 @@
+char encryptedData[] = "1Lcom/example/originapplication/ProtectedClass;getEncrypttext(Ljava/lang/String;)Ljava/lang/String;1416140";

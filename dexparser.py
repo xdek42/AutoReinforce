@@ -433,6 +433,7 @@ class Dex:
         codeoff, csize = uleb128_value(self.mmap, dexmethod_offset + asize)
         logging.info("codeoff: %d" % codeoff)
         self.set_access_flags(dexmethod_offset, accessflags | 0x100, asize + csize)
+        return codeoff
 
 
 

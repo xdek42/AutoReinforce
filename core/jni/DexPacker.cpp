@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dlfcn.h>
 #include "DexLoader.h"
 #include "log.h"
 
@@ -11,8 +12,7 @@
 #define JNIREG_CLASS "com/example/shellapplication/WrapperApplication"
 
 static bool isArt = false;
-
-bool dalivkOrArt()
+bool dalvikOrArt()
 {
     int pid = getpid();
     char path[32];
@@ -124,7 +124,7 @@ void native_attachContextBaseContext(JNIEnv *env, jobject obj, jobject ctx)
     char jarPath[256] = {0};
     sprintf(jarPath, "%s/protected.jar", fileDir);
     extractJar(env, obj, jarPath);
-    isArt = dalivkOrArt();
+    isArt = dalvikOrArt();
     //decrypt protected.jar 
     char dexPath[256] = {256};
     sprintf(dexPath, "%s/origin.dex", fileDir);
@@ -146,12 +146,28 @@ void native_attachContextBaseContext(JNIEnv *env, jobject obj, jobject ctx)
     env->DeleteLocalRef(file);
     env->DeleteLocalRef(File);
     env->DeleteLocalRef(classLoader);
+
     
 }
 
+
 void native_onCreate(JNIEnv *env, jobject obj)
 {
+    jclass Context = env->FindClass("android/content/Context");
+    jmethodID getPackageName = env->GetMethodID(Context, "getPackageName", "()Ljava/lang/String;");
+    jobject mPackageName = env->CallObjectMethod(obj, getPackageName);
+    const char *packageName = env->GetStringUTFChars(mPackageName, 0);
+
     LOGI("shellapplication's onCreate execute");
+    char libPath[256] = {0};
+    sprintf(libPath, "/data/data/%s/lib/libcore.so",  packageName);
+    //TODO: load by ourself
+    void *so = dlopen(libPath, RTLD_LAZY);
+    void (*func)(JNIEnv *env) = dlsym(so, "resume");
+    func(env);
+
+    env->DeleteLocalRef(mPackageName);
+    env->DeleteLocalRef(Context);
 }
 
 static JNINativeMethod method_table[] = {
@@ -178,11 +194,11 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
     jint result = -1;
     LOGI("JNI_OnLoad execute");
     if (vm->GetEnv((void **)&env, JNI_VERSION_1_4) != JNI_OK) {
-        LOGI("[bfsprotector get JNIEnv failed]");
+        LOGE("get JNIEnv failed");
         return result;
     }
     if (!register_ndk_load(env)) {
-        LOGI("[bfsprotector regist jni function failed]");
+        LOGE("regist jni function failed");
         return result;
     }
     return JNI_VERSION_1_4;

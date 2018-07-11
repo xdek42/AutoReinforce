@@ -65,6 +65,7 @@ def repack(apk):
     cmd = "java -jar " + apktool + " b " + apk + " -o " + newapk
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return newapk
+
 def signAndInstall(newapk):
     signapk = os.path.join(os.getcwd(), "tools", "signapk.jar")
     pk = os.path.join(os.getcwd(), "tools", "testkey.pk8")
@@ -76,10 +77,21 @@ def signAndInstall(newapk):
     cmd = "adb install -t -r " + signedapk
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+def ndk_build():
+    currentDir = os.getcwd()
+    ndkDir = os.path.join(currentDir, "core")
+    os.chdir(ndkDir)
+    cmd = "ndk-build"
+    ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    os.chdir(currentDir)
+
+
+
 def main():
     config = configparser.ConfigParser()
     config.read("config.ini")
     sections = config.sections()
+    encryptedInfo = ""
     apkPath = config["Application"]["app"]
     funNum = config["Application"]["num"]
     if not os.path.exists(apkPath):
@@ -96,11 +108,13 @@ def main():
     dexPath = os.path.join(decompressPath, "classes.dex")
     dex = dexparser.Dex(dexPath)
     logging.info("classes.dex parsing completed")
+    encryptedInfo += funNum
     for i in range(int(funNum)):
         cname = config["FUNCTION" + str(i)]["class"]
         fname = config["FUNCTION" + str(i)]["function"]
         sig = config["FUNCTION" + str(i)]["signature"]
-        dex.java2native(cname, fname, sig)
+        codeoff = dex.java2native(cname, fname, sig)
+        encryptedInfo = encryptedInfo + cname + fname + sig + str(codeoff)
     dex.update_signature()
     dex.update_checksum()
     dex.save()
@@ -122,6 +136,13 @@ def main():
     #将tmp/decompile/smali 替换为 factory/smali
     shutil.rmtree(os.path.join(decompilePath, "smali"))
     shutil.copytree(os.path.join(os.getcwd(), "factory", "smali"), os.path.join(decompilePath, "smali"))
+    #将加密函数信息写入data.h, 并重新编译libcore.so
+    data_h = open(os.path.join(os.getcwd(), "core", "jni", "data.h"), "w")
+    data = "char encryptedData[] = \"" + encryptedInfo + "\";"
+    data_h.write(data)
+    data_h.close()
+    ndk_build()
+    logging.info("ndk-build completed")
     #将core/libs/ 移动到 tmp/decompile/lib
     shutil.copytree(os.path.join(os.getcwd(), "core", "libs"), os.path.join(decompilePath, "lib"))
     #重打包apk
@@ -130,9 +151,6 @@ def main():
     #sign and install apk
     signAndInstall(newapk)
     logging.info("apk installed completed")
-
-    
-
 
 
 if __name__ == "__main__":

@@ -16,3 +16,8 @@
 - factory: 壳的smali代码
 - tools: 一些辅助工具，如apktool
 - reinforce.py: 实现自动化加固
+
+### 环境要求
+- NDK
+- python3.5
+- java

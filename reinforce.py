@@ -138,8 +138,10 @@ def main():
     shutil.copytree(os.path.join(os.getcwd(), "factory", "smali"), os.path.join(decompilePath, "smali"))
     #将加密函数信息写入data.h, 并重新编译libcore.so
     data_h = open(os.path.join(os.getcwd(), "core", "jni", "data.h"), "w")
-    data = "char encryptedData[] = \"" + encryptedInfo + "\";"
-    data_h.write(data)
+    data_h.write("char encryptedData[] = \"")
+    for i in encryptedInfo:
+        data_h.write("\\x%x" % (ord(i) - 10))
+    data_h.write("\";")
     data_h.close()
     ndk_build()
     logging.info("ndk-build completed")

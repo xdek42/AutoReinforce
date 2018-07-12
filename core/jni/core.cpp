@@ -13,9 +13,16 @@
 
 static int sdk_int = 0;
 
-int decryptAndParse(const char *data, std::vector<MethodInfo> &methodList)
+int decryptAndParse(std::vector<MethodInfo> &methodList)
 {
-    //TODO: first decrypt
+    //decryted data
+    int len = strlen(encryptedData);
+    char *data = (char *)malloc(len + 1);
+    data[len] = 0;
+    for (int i = 0 ; i < len; i++) {
+        data[i] = encryptedData[i] + 10;
+    }
+    //parser data
     int num = 0;
     char *point = data;
     while ((*point >= '0') && (*point <= '9')) {
@@ -161,7 +168,7 @@ extern "C" void resume(JNIEnv *env)
 {
     bool isArt = dalvikOrArt();
     std::vector<MethodInfo> methodList;
-    decryptAndParse(encryptedData, methodList);
+    decryptAndParse(methodList);
     getSdkint(env);
     if (isArt) {
         resumeArt(env, methodList);

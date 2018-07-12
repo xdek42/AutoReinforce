@@ -7,10 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dlfcn.h>
 #include "data.h"
 
 
-//TODO encrypt this string
+static int sdk_int = 0;
 
 int decryptAndParse(const char *data, std::vector<MethodInfo> &methodList)
 {
@@ -80,18 +81,13 @@ char *getDexFileAddress(Method *method)
     return dexFileStruct->pHeader;
 }
 
-void resumeArt(JNIEnv *env, const std::vector<MethodInfo> &methodList)
-{
-
-}
-
 void resumeDalvik(JNIEnv *env, const std::vector<MethodInfo> &methodList)
 {
     for (const auto &method : methodList) {
-        LOGI("resume class: %s" ,method.className.c_str());
-        LOGI("resume method: %s", method.methodName.c_str());
-        LOGI("resume method signature: %s", method.signature.c_str());
-        LOGI("resume method codeoff: %d", method.codeoff);
+        LOGI("class: %s" ,method.className.c_str());
+        LOGI("method: %s", method.methodName.c_str());
+        LOGI("method signature: %s", method.signature.c_str());
+        LOGI("method codeoff: %d", method.codeoff);
 
         jclass clazz = env->FindClass(method.className.c_str());
         Method *methodId = (Method *)env->GetMethodID(clazz, method.methodName.c_str(), method.signature.c_str());
@@ -110,12 +106,63 @@ void resumeDalvik(JNIEnv *env, const std::vector<MethodInfo> &methodList)
     }
 }
 
+int getSdkint(JNIEnv *env)
+{
+    if (!sdk_int) {
+        jclass Build_version = env->FindClass("android/os/Build$VERSION");
+        jfieldID fieldID = env->GetStaticFieldID(Build_version, "SDK_INT", "I");
+        sdk_int = env->GetStaticIntField(Build_version, fieldID);
+        env->DeleteLocalRef(Build_version);
+    }
+    return sdk_int;
+}
+
+
+void resumeArt(JNIEnv *env, const std::vector<MethodInfo> &methodList)
+{
+    for (const auto &method : methodList) {
+        LOGI("class: %s" ,method.className.c_str());
+        LOGI("method: %s", method.methodName.c_str());
+        LOGI("method signature: %s", method.signature.c_str());
+        LOGI("method codeoff: %d", method.codeoff);
+        jclass clazz = env->FindClass(method.className.c_str());
+        u4 *methodId = (u4 *)env->GetMethodID(clazz, method.methodName.c_str(), method.signature.c_str());
+        env->ExceptionClear();
+        if (!methodId) {
+            methodId = (u4 *)env->GetStaticMethodID(clazz, method.methodName.c_str(), method.signature.c_str());
+            env->ExceptionClear();
+        }
+        //TODO: support more sdk version
+        if (sdk_int == 22) {
+            LOGI("ArtMethod->access_flags_: %d", methodId[5]);
+            LOGI("ArtMethod->dex_code_item_offset_: %d", methodId[6]);
+            LOGI("ArtMethod->dex_method_index_: %d", methodId[7]);
+            LOGI("ArtMethod->method_index_: %d", methodId[8]);
+            LOGI("ArtMethod->entry_point_from_interpreter_: %x", methodId[9]);
+            LOGI("ArtMethod->entry_point_from_jni_: %x", methodId[10]);
+            LOGI("ArtMethod->entry_point_from_quick_compiled_code_: %x", methodId[11]);
+            LOGI("ArtMethod->entry_point_from_portable_compiled_code_: %x", methodId[12]);
+            //clear native flag
+            methodId[5] &= ~(ACC_NATIVE);
+            //repair dex_code_item_offset_
+            methodId[6] = method.codeoff;
+            //modify entry point
+            void *libart = dlopen("libart.so", RTLD_LAZY);
+            void *(*func)() = dlsym(libart, "art_quick_to_interpreter_bridge");
+            if (func) {
+                LOGI("find art_quick_to_interpreter_bridge: %x", func);
+            }
+            methodId[11] = (int)func;
+        }
+    }
+}
+
 extern "C" void resume(JNIEnv *env) 
 {
     bool isArt = dalvikOrArt();
     std::vector<MethodInfo> methodList;
     decryptAndParse(encryptedData, methodList);
-
+    getSdkint(env);
     if (isArt) {
         resumeArt(env, methodList);
     }

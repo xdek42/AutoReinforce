@@ -96,9 +96,6 @@ void extractJar(JNIEnv *env, jobject obj, const char* jarPath)
             return;
         }
     } 
-    else {
-        LOGI("protect.jar existed");
-    }
 }
 
 void native_attachContextBaseContext(JNIEnv *env, jobject obj, jobject ctx)

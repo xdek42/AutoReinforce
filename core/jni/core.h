@@ -28,7 +28,7 @@ struct DexFileStruct{
     int overhead;
 };
 
-struct DexCodeStruct{
+struct DexCodeStruct {
     u2 registersSize;
     u2 insSize;
     u2 outsSize;
@@ -37,5 +37,6 @@ struct DexCodeStruct{
     u4 insnsSize;
     u2 insns[1];
 };
+
 
 #endif

@@ -7,6 +7,7 @@
 #include <dlfcn.h>
 #include "DexLoader.h"
 #include "log.h"
+#include "AntiDebug.h"
 
 #define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
 #define JNIREG_CLASS "com/example/shellapplication/WrapperApplication"
@@ -100,6 +101,7 @@ void extractJar(JNIEnv *env, jobject obj, const char* jarPath)
 
 void native_attachContextBaseContext(JNIEnv *env, jobject obj, jobject ctx)
 {
+    checkTracerPid();
     LOGI("shellapplication's attachContext execute");
     //super.attachBaseContext(base);  
     jclass ContextWrapper = env->FindClass("android/content/ContextWrapper");
@@ -150,6 +152,7 @@ void native_attachContextBaseContext(JNIEnv *env, jobject obj, jobject ctx)
 
 void native_onCreate(JNIEnv *env, jobject obj)
 {
+    checkPort();
     jclass Context = env->FindClass("android/content/Context");
     jmethodID getPackageName = env->GetMethodID(Context, "getPackageName", "()Ljava/lang/String;");
     jobject mPackageName = env->CallObjectMethod(obj, getPackageName);
@@ -158,6 +161,7 @@ void native_onCreate(JNIEnv *env, jobject obj)
     LOGI("shellapplication's onCreate execute");
     char libPath[256] = {0};
     sprintf(libPath, "/data/data/%s/lib/libcore.so",  packageName);
+    checkDlactivity();
     //TODO: load by ourself
     void *so = dlopen(libPath, RTLD_LAZY);
     void (*func)(JNIEnv *env) = dlsym(so, "resume");

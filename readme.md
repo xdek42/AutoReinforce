@@ -1,6 +1,6 @@
 ## AutoReinforce
 ### 简介
-自动化加固工具，支持java方法级别加固，内含多种反调试措施，适配Dalvik和ART两种模式，目前已测试系统Android4.4.4、Android5.1.0
+自动化加固工具，支持java方法级别加固，内含多种反调试措施，适配Dalvik和ART两种模式，目前已测试系统Android4.4、Android5.0、Android5.1。
 ### 用法
 
 1. 填写配置文件

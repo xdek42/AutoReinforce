@@ -105,7 +105,7 @@ void DexLoader::makeDexElements(jobject classLoader, jobject dexFileobj)
 void DexLoader::loadDexArt(const char *dexPath, const char *oatPath, jobject classLoader) 
 {
     if (access(oatPath, F_OK) == -1) {
-        LOGI("we don't have oat file, and we don't create it");
+        LOGI("we don't have oat file, and we create it");
         char cmd[256] = {0};
         sprintf(cmd, "dex2oat --dex-file=%s --oat-file=%s --instruction-set=arm --boot-image=/system/framework/boot.art ", dexPath, oatPath);
         int ret = system(cmd);

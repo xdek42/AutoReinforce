@@ -139,7 +139,28 @@ void resumeArt(JNIEnv *env, const std::vector<MethodInfo> &methodList)
             methodId = (u4 *)env->GetStaticMethodID(clazz, method.methodName.c_str(), method.signature.c_str());
             env->ExceptionClear();
         }
+        void *libart = dlopen("libart.so", RTLD_LAZY);
+        void *(*func)() = dlsym(libart, "art_quick_to_interpreter_bridge");
+        if (func) {
+                LOGI("find art_quick_to_interpreter_bridge: %x", func);
+        }
         //TODO: support more sdk version
+        if (sdk_int == 21) {
+            LOGI("ArtMethod->entry_point_from_interpreter_: %x", (uint64_t *)(methodId + 4));
+            LOGI("ArtMethod->entry_point_from_jni_: %x", (uint64_t *)(methodId + 6));
+            LOGI("ArtMethod->entry_point_from_portable_compiled_code_: %x", (uint64_t *)(methodId + 8));
+            LOGI("ArtMethod->entry_point_from_quick_compiled_code_: %x", (uint64_t *)(methodId + 10));
+            LOGI("ArtMethod->access_flags_: %d", methodId[14]);
+            LOGI("ArtMethod->dex_code_item_offset_: %d", methodId[15]);
+            LOGI("ArtMethod->dex_method_index_: %d", methodId[16]);
+            LOGI("ArtMethod->method_index_: %d", methodId[17]);
+            methodId[14] &= ~(ACC_NATIVE);
+            //repair dex_code_item_offset_
+            methodId[15] = method.codeoff;
+            //modify entry point
+            methodId[10] = (int)func;
+            methodId[11] = 0;
+        }
         if (sdk_int == 22) {
             LOGI("ArtMethod->access_flags_: %d", methodId[5]);
             LOGI("ArtMethod->dex_code_item_offset_: %d", methodId[6]);
@@ -154,11 +175,6 @@ void resumeArt(JNIEnv *env, const std::vector<MethodInfo> &methodList)
             //repair dex_code_item_offset_
             methodId[6] = method.codeoff;
             //modify entry point
-            void *libart = dlopen("libart.so", RTLD_LAZY);
-            void *(*func)() = dlsym(libart, "art_quick_to_interpreter_bridge");
-            if (func) {
-                LOGI("find art_quick_to_interpreter_bridge: %x", func);
-            }
             methodId[11] = (int)func;
         }
     }

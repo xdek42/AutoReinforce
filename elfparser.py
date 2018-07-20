@@ -29,9 +29,9 @@ class Elf:
         self.header = header_data
 
     def get_program_header(self, num):
-        if (num > self.header['e_phnum']) or (num <= 0):
+        if (num >= self.header['e_phnum']) or (num < 0):
             return
-        offset = self.header['e_phoff'] + self.header['e_phentsize'] * (num - 1)
+        offset = self.header['e_phoff'] + self.header['e_phentsize'] * num
         program_header = {}
         program_header['p_type'  ] = struct.unpack('<I', self.mmap[offset:offset+4])[0]
         program_header['p_offset'] = struct.unpack('<I', self.mmap[offset+4:offset+8])[0]
@@ -51,24 +51,26 @@ class Elf:
         core_so = open(filedir, 'r+b')
         size = os.path.getsize(filedir)
         insert_position = 0
+
         phnum = self.header['e_phnum']
         for i in range(phnum-1, -1, -1):
+            program_header = self.get_program_header(i)
             offset = self.header['e_phoff'] + self.header['e_phentsize'] * i
-            p_type = struct.unpack('<I', self.mmap[offset:offset+4])[0]
-            if p_type == 1:
-                p_filesz = struct.unpack('<I', self.mmap[offset+16:offset+20])[0]
-                p_offset = struct.unpack('<I', self.mmap[offset+4:offset+8])[0]
-                p_memsz  = struct.unpack('<I', self.mmap[offset+20:offset+24])[0]
-                p_vaddr  = struct.unpack('<I', self.mmap[offset+8:offset+12])[0]
+            if program_header['p_type'] == 1:
                 insert_position = self.header['e_shoff']
                 #modifyed p_filesz and p_memsz
-                added_size = insert_position - p_offset - p_filesz + size
-                self.mmap[offset+16:offset+20] = struct.pack('<I', p_filesz + added_size)
-                self.mmap[offset+20:offset+24] = struct.pack('<I', p_memsz + added_size)
+                added_size = insert_position - program_header['p_offset'] + size - program_header['p_filesz']
+                p_filesz = program_header['p_filesz']  + added_size
+                p_memsz = program_header['p_memsz'] + added_size
+                self.mmap[offset+16:offset+20] = struct.pack('<I', p_filesz)
+                self.mmap[offset+20:offset+24] = struct.pack('<I', p_memsz)
                 #save offset
-                self.mmap[0x20:0x24] = struct.pack('<I', insert_position)
-                logging.info("core so virtual offset: %x", p_vaddr + insert_position - p_offset)
+                core_virtual_addr = program_header['p_vaddr'] + insert_position - program_header['p_offset']
+                self.mmap[0x20:0x24] = struct.pack('<I', core_virtual_addr)
+                self.mmap[0x2e:0x30] = struct.pack('<H', 0)
+                self.mmap[0x30:0x32] = struct.pack('<H', 0)
                 break
+
         #create new so
         parentdir = os.path.abspath(os.path.join(filedir, os.pardir))
         new_so = open(os.path.join(parentdir, 'libreinforce.so'), 'w+b')
@@ -88,7 +90,7 @@ if __name__ == "__main__":
     elf = Elf(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libreinforce.so"))
     elf.header_info()
     elf.insert_so(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"))
-    print(elf.get_program_header(9))
+    print(elf.get_program_header(5))
 
 
 

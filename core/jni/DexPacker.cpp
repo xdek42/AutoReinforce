@@ -8,6 +8,7 @@
 #include "DexLoader.h"
 #include "log.h"
 #include "AntiDebug.h"
+#include "ElfLoader.h"
 
 #define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
 #define JNIREG_CLASS "com/example/shellapplication/WrapperApplication"
@@ -166,6 +167,7 @@ void native_onCreate(JNIEnv *env, jobject obj)
     void *so = dlopen(libPath, RTLD_LAZY);
     void (*func)(JNIEnv *env) = dlsym(so, "resume");
     func(env);
+    ElfLoader::getSoAddress();
 
     env->DeleteLocalRef(mPackageName);
     env->DeleteLocalRef(Context);

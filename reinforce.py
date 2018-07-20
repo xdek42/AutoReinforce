@@ -13,8 +13,9 @@ import elfparser
 import shutil
 
 logging.basicConfig(level=logging.INFO,  
-                    format = "%(asctime)s %(message)s",  
+                    format = "%(asctime)s [%(levelname)s] %(message)s",  
                     datefmt = '%Y-%m-%d %H:%M') 
+
 
 def encryptDex(originDex, encryptedDex):
     inDex = open(originDex, "rb")
@@ -39,6 +40,7 @@ def unzip(apk):
     for names in zipFile.namelist():
         zipFile.extract(names, unzipPath)
     zipFile.close()
+    logging.info("apk decompressed completed")
     return unzipPath
 
 def decompile(apk):
@@ -51,6 +53,11 @@ def decompile(apk):
     apktool = os.path.join(os.getcwd(), "tools", "apktool_2.3.3.jar")
     cmd = "java -jar " + apktool + " d -f " + apk + " -o " + decompilePath
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret == 0:
+        logging.info("apk decompiled completed")
+    else:
+        logging.info("apk decompiled failed")
+        sys.exit()
     return decompilePath
 
 def repack(apk):
@@ -65,6 +72,11 @@ def repack(apk):
     newapk = os.path.join(outPath, "new.apk")
     cmd = "java -jar " + apktool + " b " + apk + " -o " + newapk
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret == 0:
+        logging.info("apk repcked completed")
+    else:
+        logging.error("apk repacked failed")
+        sys.exit()
     return newapk
 
 def signAndInstall(newapk):
@@ -76,7 +88,13 @@ def signAndInstall(newapk):
     cmd = "java -jar " + signapk + " " + pem + " " + pk + " " + newapk + " " + signedapk
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     cmd = "adb install -t -r " + signedapk
+    logging.info("apk signed completed")
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret == 0:
+        logging.info("apk installed completed")
+    else:
+        logging.error("apk installed failed")
+        sys.exit()
 
 def ndk_build():
     currentDir = os.getcwd()
@@ -85,8 +103,12 @@ def ndk_build():
     cmd = "ndk-build"
     ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     os.chdir(currentDir)
-
-
+    if ret == 0:
+        logging.info("ndk-build completed")
+    else:
+        logging.error("ndk-build failed")
+        sys.exit()
+        
 
 def main():
     #读取配置文件
@@ -103,12 +125,10 @@ def main():
 
     #解压APK
     decompressPath = unzip(apkPath)
-    logging.info("apk decompressed completed")
 
     #反编译APK
     decompilePath = decompile(apkPath)
-    logging.info("apk decompiled completed")
-
+    
     #将待加密函数native化
     dexPath = os.path.join(decompressPath, "classes.dex")
     dex = dexparser.Dex(dexPath)
@@ -153,8 +173,7 @@ def main():
     data_h.write("\";")
     data_h.close()
     ndk_build()
-    logging.info("ndk-build completed")
-
+    
     #对so进行加固
     elf = elfparser.Elf(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libloader.so"))
     elf.insert_so(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"))
@@ -162,15 +181,16 @@ def main():
     libPath = os.path.join(decompilePath, "lib", "armeabi-v7a")
     if not os.path.isdir(libPath):
         os.makedirs(libPath)
+    elf.save()
     shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libreinforce.so"), libPath) 
     shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"), libPath) 
 
     #重打包apk
     newapk = repack(decompilePath)
-    logging.info("apk reinforced completed")
+    
     #sign and install apk
     signAndInstall(newapk)
-    logging.info("apk installed completed")
+    
 
 
 if __name__ == "__main__":

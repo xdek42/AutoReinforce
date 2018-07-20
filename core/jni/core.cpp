@@ -139,6 +139,7 @@ void resumeArt(JNIEnv *env, const std::vector<MethodInfo> &methodList)
             methodId = (u4 *)env->GetStaticMethodID(clazz, method.methodName.c_str(), method.signature.c_str());
             env->ExceptionClear();
         }
+        //TODO: modified to our own virtual machine
         void *libart = dlopen("libart.so", RTLD_LAZY);
         void *(*func)() = dlsym(libart, "art_quick_to_interpreter_bridge");
         if (func) {

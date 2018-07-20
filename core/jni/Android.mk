@@ -1,7 +1,7 @@
 LOCAL_PATH := $(call my-dir)   
 
 include $(CLEAR_VARS)          
-LOCAL_MODULE    := reinforce   
+LOCAL_MODULE    := loader   
 LOCAL_SRC_FILES := DexPacker.cpp DexLoader.cpp AntiDebug.cpp
 LOCAL_LDLIBS    := -llog -landroid
 LOCAL_CFLAGS	:= -fpermissive -w  -std=c++11

@@ -416,7 +416,6 @@ class Dex:
         signature = sha1.digest()
         self.mmap[12 : 32] = struct.pack("20s", signature)
 
-
     #change java funtion to native funtion
     def java2native(self, cname, fname, sig):
         classdef_index, classdef = self.get_classdef(cname)

@@ -9,6 +9,7 @@ import logging
 import dexparser
 import struct
 import xmlparser
+import elfparser
 import shutil
 
 logging.basicConfig(level=logging.INFO,  
@@ -88,6 +89,7 @@ def ndk_build():
 
 
 def main():
+    #读取配置文件
     config = configparser.ConfigParser()
     config.read("config.ini")
     sections = config.sections()
@@ -98,12 +100,15 @@ def main():
         logging.error("cannot find apk file")
         sys.exit(1)
     workDir = os.path.abspath(os.path.join(apkPath, os.pardir))
+
     #解压APK
     decompressPath = unzip(apkPath)
     logging.info("apk decompressed completed")
+
     #反编译APK
     decompilePath = decompile(apkPath)
     logging.info("apk decompiled completed")
+
     #将待加密函数native化
     dexPath = os.path.join(decompressPath, "classes.dex")
     dex = dexparser.Dex(dexPath)
@@ -119,6 +124,7 @@ def main():
     dex.update_checksum()
     dex.save()
     logging.info("classes.dex modified completed")
+
     #将修改后的dex文件加密，打包为protected.jar
     assetsPath = os.path.join(decompilePath, "assets")
     if os.path.isdir(assetsPath):
@@ -128,14 +134,17 @@ def main():
     encryptedDexPath = os.path.join(assetsPath, "protected.jar")
     encryptDex(dexPath, encryptedDexPath)
     logging.info("classes.dex encrypted completed")
+
     #修改原app的manifest
     manifest = xmlparser.xml(os.path.join(workDir, "tmp", "decompile", "AndroidManifest.xml"))
     manifest.add_application("com.example.shellapplication.WrapperApplication")
     manifest.save()
     logging.info("AndroidManifest.xml modified completed")
+
     #将tmp/decompile/smali 替换为 factory/smali
     shutil.rmtree(os.path.join(decompilePath, "smali"))
     shutil.copytree(os.path.join(os.getcwd(), "factory", "smali"), os.path.join(decompilePath, "smali"))
+
     #将加密函数信息写入data.h, 并重新编译libcore.so
     data_h = open(os.path.join(os.getcwd(), "core", "jni", "data.h"), "w")
     data_h.write("char encryptedData[] = \"")
@@ -145,8 +154,17 @@ def main():
     data_h.close()
     ndk_build()
     logging.info("ndk-build completed")
+
+    #对so进行加固
+    elf = elfparser.Elf(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libloader.so"))
+    elf.insert_so(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"))
     #将core/libs/ 移动到 tmp/decompile/lib
-    shutil.copytree(os.path.join(os.getcwd(), "core", "libs"), os.path.join(decompilePath, "lib"))
+    libPath = os.path.join(decompilePath, "lib", "armeabi-v7a")
+    if not os.path.isdir(libPath):
+        os.makedirs(libPath)
+    shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libreinforce.so"), libPath) 
+    shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"), libPath) 
+
     #重打包apk
     newapk = repack(decompilePath)
     logging.info("apk reinforced completed")

@@ -9,6 +9,7 @@
 #include "log.h"
 #include "AntiDebug.h"
 #include "ElfLoader.h"
+#include "ElfReader.h"
 
 #define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
 #define JNIREG_CLASS "com/example/shellapplication/WrapperApplication"

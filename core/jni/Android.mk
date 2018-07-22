@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)          
 LOCAL_MODULE    := loader   
-LOCAL_SRC_FILES := DexPacker.cpp DexLoader.cpp AntiDebug.cpp ElfLoader.cpp
+LOCAL_SRC_FILES := DexPacker.cpp DexLoader.cpp AntiDebug.cpp ElfLoader.cpp ElfReader.cpp
 LOCAL_LDLIBS    := -llog -landroid
 LOCAL_CFLAGS	:= -fpermissive -w  -std=c++11
 include $(BUILD_SHARED_LIBRARY) 

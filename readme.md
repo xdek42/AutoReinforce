@@ -1,6 +1,13 @@
 ## AutoReinforce
 ### 简介
 自动化加固工具，支持java方法级别加固，so压缩壳，内含多种反调试措施，适配Dalvik和ART两种模式，目前已测试系统Android4.4、Android5.0、Android5.1。
+
+### 特色
+- 融合多种反调试
+- Dalvik/Art模式下不落地动态加载
+- 运行时java方法修复
+- so压缩壳，实现了自定义linker加载核心so
+
 ### 用法
 
 1. 填写配置文件

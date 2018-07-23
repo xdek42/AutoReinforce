@@ -3,6 +3,7 @@
 #include "soinfo.h"
 #include <sys/mman.h>
 #include <stdint.h>
+#include "log.h"
 
 int phdr_table_get_load_size(const Elf32_Phdr* phdr_table, int phdr_count,  Elf32_Addr* out_min_vaddr = nullptr, Elf32_Addr* out_max_vaddr = nullptr) 
 {
@@ -68,15 +69,14 @@ bool ElfReader::ReserveAddressSpace()
     Elf32_Addr min_vaddr;
     load_size_ = phdr_table_get_load_size(phdr_table_, phdr_num_, &min_vaddr);
     uint8_t* addr = reinterpret_cast<uint8_t*>(min_vaddr);
-    void* start;
-
     int mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS;
-    start = mmap(addr, load_size_, PROT_NONE, mmap_flags, -1, 0);
+    void *start = mmap(addr, load_size_, PROT_NONE, mmap_flags, -1, 0);
+    mprotect(start, load_size_, PROT_WRITE);
+    *((uint8_t *)start) = 0;
     load_start_ = start;
     load_bias_ = reinterpret_cast<uint8_t*>(start) - addr;
     return true;
 }
-
 bool ElfReader::LoadSegments()
 {
     for (size_t i = 0; i < phdr_num_; ++i) {
@@ -101,7 +101,7 @@ bool ElfReader::LoadSegments()
         Elf32_Addr file_length = file_end - file_page_start;
 
         if (file_length != 0) {
-            memcpy(reinterpret_cast<void*>(seg_page_start), base + phdr->p_offset, file_length);
+            memcpy(reinterpret_cast<void*>(seg_page_start), base + file_page_start, file_length);
         }
 
         if ((phdr->p_flags & PF_W) != 0 && PAGE_OFFSET(seg_file_end) > 0) {
@@ -119,7 +119,8 @@ bool ElfReader::LoadSegments()
     return true;
 }
 
-bool ElfReader::FindPhdr() {
+bool ElfReader::FindPhdr()
+{
     const Elf32_Phdr* phdr_limit = phdr_table_ + phdr_num_;
     for (const Elf32_Phdr* phdr = phdr_table_; phdr < phdr_limit; ++phdr) {
         if (phdr->p_type == PT_PHDR) {

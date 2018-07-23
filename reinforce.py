@@ -183,7 +183,7 @@ def main():
         os.makedirs(libPath)
     elf.save()
     shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libreinforce.so"), libPath) 
-    shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"), libPath) 
+    #shutil.copy(os.path.join(os.getcwd(), "core", "libs", "armeabi-v7a", "libcore.so"), libPath) 
 
     #重打包apk
     newapk = repack(decompilePath)

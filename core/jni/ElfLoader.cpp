@@ -136,7 +136,6 @@ static void *ElfLoader::getSoAddress()
     }
     uint32_t offset = *(loaderBase + 8);
     uint8_t *so = (uint8_t *)loaderBase + offset;
-    LOGI("find core so: %c%c%c", *(so+1), *(so+2), *(so+3));
     fclose(fd);
     return so;
 }
@@ -152,14 +151,20 @@ static soinfo *ElfLoader::load_library(uint8_t *base)
         return nullptr;
     }
     si->base = elf_reader.load_start();
+    LOGI("croe so base: %x", si->base);
     si->size = elf_reader.load_size();
+    LOGI("core so size: %x", si->size);
     si->load_bias = elf_reader.load_bias();
+    LOGI("core so load bias: %x", si->load_bias);
     si->phnum = elf_reader.phdr_count();
+    LOGI("core so phnum: %d", si->phnum);
     si->phdr = elf_reader.loaded_phdr();
+    LOGI("core so phdr: %x", si->phdr);
     //link so
     soinfo_link_image(si);
     // call so constructor
-    CallConstructors(si);
+    LOGI("core so linked completed");
+    //CallConstructors(si);
     return si;
 }
 
@@ -352,7 +357,9 @@ static int ElfLoader::soinfo_relocate(soinfo* si, Elf32_Rel *rel, uint32_t count
 
 static void CallFunction(const char* function_name, linker_function_t function)
 {
-    function();
+    if (function) {
+        function();
+    }
 }
 
 static void CallArray(const char* array_name, linker_function_t* functions, size_t count, bool reverse) {

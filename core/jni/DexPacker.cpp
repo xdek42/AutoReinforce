@@ -161,14 +161,12 @@ void native_onCreate(JNIEnv *env, jobject obj)
     const char *packageName = env->GetStringUTFChars(mPackageName, 0);
 
     LOGI("shellapplication's onCreate execute");
-    char libPath[256] = {0};
-    sprintf(libPath, "/data/data/%s/lib/libcore.so",  packageName);
     checkDlactivity();
     //TODO: load by ourself
-    void *so = dlopen(libPath, RTLD_LAZY);
+    uint8_t *base = ElfLoader::getSoAddress();
+    void *so = ElfLoader::load_library(base);
     void (*func)(JNIEnv *env) = dlsym(so, "resume");
     func(env);
-    ElfLoader::getSoAddress();
 
     env->DeleteLocalRef(mPackageName);
     env->DeleteLocalRef(Context);

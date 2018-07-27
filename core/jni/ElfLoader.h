@@ -7,6 +7,7 @@ class ElfLoader {
 public:
     static void *getSoAddress();
     static soinfo *load_library(uint8_t *base);
+    static void *dlsym(soinfo *si, const char *symbol);
 private:
     static bool soinfo_link_image(soinfo *si);
     static int soinfo_relocate(soinfo* si, Elf32_Rel *rel, uint32_t count, soinfo *needed[]);

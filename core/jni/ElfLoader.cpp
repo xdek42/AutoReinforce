@@ -355,6 +355,21 @@ static int ElfLoader::soinfo_relocate(soinfo* si, Elf32_Rel *rel, uint32_t count
     return 0;
 }
 
+
+static void *ElfLoader::dlsym(soinfo *handle, const char *symbol)
+{
+    unsigned hash = elfhash(symbol);
+    Elf32_Sym *symtab = handle->symtab;
+    const char *strtab = handle->strtab;
+    for (unsigned n = handle->bucket[hash % handle->nbucket]; n != 0; n = handle->chain[n]) {
+        Elf32_Sym *s = symtab + n;
+        if (strcmp(strtab + s->st_name, symbol) == 0) {
+            return reinterpret_cast<void*>(s->st_value + handle->load_bias);
+        }
+    }
+    return nullptr;
+}
+
 static void CallFunction(const char* function_name, linker_function_t function)
 {
     if (function) {

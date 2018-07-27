@@ -70,8 +70,7 @@ bool ElfReader::ReserveAddressSpace()
     load_size_ = phdr_table_get_load_size(phdr_table_, phdr_num_, &min_vaddr);
     uint8_t* addr = reinterpret_cast<uint8_t*>(min_vaddr);
     int mmap_flags = MAP_PRIVATE | MAP_ANONYMOUS;
-    void *start = mmap(addr, load_size_, PROT_NONE, mmap_flags, -1, 0);
-    mprotect(start, load_size_, PROT_WRITE);
+    void *start = mmap(addr, load_size_, PROT_WRITE|PROT_EXEC, mmap_flags, -1, 0);
     *((uint8_t *)start) = 0;
     load_start_ = start;
     load_bias_ = reinterpret_cast<uint8_t*>(start) - addr;

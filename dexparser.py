@@ -422,15 +422,15 @@ class Dex:
         classdata_off = classdef[6]
         methodid_index, dexmethod_offset = self.get_dexmethod_off_from_classdata(classdata_off, fname, sig)
         #print(classdef_index, methodid_index, dexmethod_offset)
-        logging.info("classdef_index: %d" % classdef_index)
-        logging.info("methodid_index: %d" % methodid_index)
-        logging.info("dexmethod_offset: %d" % dexmethod_offset)
+        #logging.info("classdef_index: %d" % classdef_index)
+        #logging.info("methodid_index: %d" % methodid_index)
+        #logging.info("dexmethod_offset: %d" % dexmethod_offset)
         #modify
         methodidx, size = uleb128_value(self.mmap, dexmethod_offset)
         dexmethod_offset += size
         accessflags, asize = uleb128_value(self.mmap, dexmethod_offset)
         codeoff, csize = uleb128_value(self.mmap, dexmethod_offset + asize)
-        logging.info("codeoff: %d" % codeoff)
+        #logging.info("codeoff: %d" % codeoff)
         self.set_access_flags(dexmethod_offset, accessflags | 0x100, asize + csize)
         return codeoff
 

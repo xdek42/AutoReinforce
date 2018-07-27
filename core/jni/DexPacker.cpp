@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <sys/mman.h>
 #include "DexLoader.h"
 #include "log.h"
 #include "AntiDebug.h"
@@ -13,6 +14,12 @@
 
 #define NELEM(x) ((int)(sizeof(x) / sizeof((x)[0])))
 #define JNIREG_CLASS "com/example/shellapplication/WrapperApplication"
+
+#define PAGE_MASK 0xFFFFF000
+#define PAGE_SIZE 4096
+#define PAGE_START(x)  ((x) & PAGE_MASK)
+#define PAGE_OFFSET(x) ((x) & ~PAGE_MASK)
+#define PAGE_END(x)    PAGE_START((x) + (PAGE_SIZE-1))
 
 static bool isArt = false;
 bool dalvikOrArt()
@@ -162,11 +169,17 @@ void native_onCreate(JNIEnv *env, jobject obj)
 
     LOGI("shellapplication's onCreate execute");
     checkDlactivity();
-    //TODO: load by ourself
+
     uint8_t *base = ElfLoader::getSoAddress();
     void *so = ElfLoader::load_library(base);
-    void (*func)(JNIEnv *env) = dlsym(so, "resume");
-    func(env);
+    void (*func)(JNIEnv *env) = ElfLoader::dlsym(so, "resume");
+    if (func) {
+        LOGI("func address: %x", func);
+        func(env);
+    }
+    else {
+        LOGI("can not find resume function");
+    }
 
     env->DeleteLocalRef(mPackageName);
     env->DeleteLocalRef(Context);

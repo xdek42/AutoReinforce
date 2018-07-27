@@ -184,6 +184,7 @@ void resumeArt(JNIEnv *env, const std::vector<MethodInfo> &methodList)
 extern "C" void resume(JNIEnv *env) 
 {
     bool isArt = dalvikOrArt();
+    LOGI("begin resume");
     std::vector<MethodInfo> methodList;
     decryptAndParse(methodList);
     getSdkint(env);

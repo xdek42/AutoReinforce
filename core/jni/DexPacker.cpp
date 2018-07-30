@@ -178,7 +178,7 @@ void native_onCreate(JNIEnv *env, jobject obj)
         func(env);
     }
     else {
-        LOGI("can not find resume function");
+        LOGE("can not find resume function");
     }
 
     env->DeleteLocalRef(mPackageName);

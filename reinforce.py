@@ -101,7 +101,9 @@ def ndk_build():
     ndkDir = os.path.join(currentDir, "core")
     os.chdir(ndkDir)
     cmd = "ndk-build"
-    ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    env = os.environ.copy()
+    env["NDK_PROJECT_PATH"] = ndkDir
+    ret = subprocess.call(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     os.chdir(currentDir)
     if ret == 0:
         logging.info("ndk-build completed")
